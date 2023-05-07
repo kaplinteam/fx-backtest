@@ -11,6 +11,7 @@ import gzip
 
 
 async def download_to_csv(pair: str, days: int = 1):
+    """Download data & store it to compressed CSV file"""
     ct = DataCenter(timeout=30, use_cache=True)
     now = datetime.now()
     now = datetime(now.year, now.month, now.day)
@@ -23,19 +24,19 @@ async def download_to_csv(pair: str, days: int = 1):
         )
         hour = from_date
         while hour <= now:
-            stream = await ct.get_ticks(pair, hour)
-            out = struct.iter_unpack(ct.format, stream.read())
-            for tick in out:
-                tick = list(tick)
-                tick[0] = hour + timedelta(microseconds=tick[0])
-                datafile_writer.writerow(tick)
+            if hour.weekday() < 5:
+                stream = await ct.get_ticks(pair, hour)
+                out = struct.iter_unpack(ct.format, stream.read())
+                for tick in out:
+                    tick = list(tick)
+                    tick[0] = hour + timedelta(microseconds=tick[0])
+                    datafile_writer.writerow(tick)
             hour += timedelta(hours=1)
-
 
 @click.command()
 @click.option("--days", default=1, help="Number of days to download.")
 @click.option("--pair", default="EURUSD", help="Pair to download.")
-def run(days: int, pair: str):
+def run(days: int = 1 , pair: str = "EURUSD"):
     """Download data"""
     asyncio.run(download_to_csv(pair=pair, days=days))
 

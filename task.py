@@ -75,7 +75,7 @@ def gzip_to_pystore(ticker: str):
 
 @flow(name="EURUSD data upgrade")
 def main_flow(ticker: str, days: int):
-    load_duckastopy_to_gzip(ticker)
+    load_duckastopy_to_gzip(ticker, days)
     gzip_to_pystore(ticker)
 
-print(main_flow("EURUSD", 400))
+print(main_flow(ticker="EURUSD", days=400))

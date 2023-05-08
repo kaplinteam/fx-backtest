@@ -1,10 +1,14 @@
-import os, lzma
-import pytz
-from io import BytesIO
-import aiohttp, asyncio
-from loguru import logger
-from typing import List, Tuple
+import asyncio
+import lzma
+import os
 from datetime import datetime, timedelta
+from io import BytesIO
+from typing import List, Tuple
+
+import aiohttp
+import pytz
+from loguru import logger
+
 from .downloader import TickLoader
 
 

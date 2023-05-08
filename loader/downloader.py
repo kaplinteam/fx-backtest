@@ -1,7 +1,8 @@
 import asyncio
+from datetime import datetime
+
 import aiohttp
 from loguru import logger
-from datetime import datetime
 
 
 class TickLoader:

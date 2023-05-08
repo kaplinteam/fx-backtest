@@ -73,9 +73,9 @@ def gzip_to_pystore(ticker: str):
 
     collection.write(ticker, df, metadata={"source": "Dukascopy"}, overwrite=True)
 
-@flow(name="EURUSD data upgrade")
+@flow(name="EURUSD data upgrade", log_prints=True)
 def main_flow(ticker: str, days: int):
     load_duckastopy_to_gzip(ticker, days)
     gzip_to_pystore(ticker)
 
-print(main_flow(ticker="EURUSD", days=400))
+load_tickers(ticker="EURUSD", days=400)

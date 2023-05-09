@@ -36,6 +36,7 @@ def load_duckastopy_to_gzip(ticker: str, day: datetime):
                         writer_fn(tick)
             hour += timedelta(hours=1)
 
+    logger = get_run_logger()
     f = open(f"{ticker}.csv.gz", "wb")
     with gzip.open(f, "wt") as csvfile:
         datafile_writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
@@ -56,9 +57,10 @@ def gzip_to_storage(ticker: str):
         f"{ticker}.csv.gz",
         header=None,
         names=["timestamp", "bid", "ask", "bid_size", "ask_size"],
-        parse_dates=["timestamp"],
         blocksize=None,  # blocksize='10MB',
     )
+    df["timestamp"] = dd.to_datetime(df["timestamp"], errors="coerce")
+    df = df.dropna()
     if df.size.compute() == 0:
         return
 
@@ -111,4 +113,4 @@ def load_tickers(ticker: str, days: int):
     storage_data_clean_and_optimize(ticker)
 
 
-load_tickers(ticker="EURUSD", days=10*365)
+load_tickers(ticker="EURUSD", days=500)

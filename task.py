@@ -96,7 +96,7 @@ def storage_data_clean_and_optimize(ticker: str):
     # Write results
     df.to_parquet(dist_path, engine="fastparquet", ignore_divisions=True)
 
-    logger.info("File converted")
+    logger.info("Data file stored, %d records total" % (len(df)))
 
 
 @flow(name="EURUSD data upgrade", log_prints=True)
@@ -111,4 +111,4 @@ def load_tickers(ticker: str, days: int):
     storage_data_clean_and_optimize(ticker)
 
 
-load_tickers(ticker="EURUSD", days=10)
+load_tickers(ticker="EURUSD", days=10*365)

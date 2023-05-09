@@ -7,24 +7,24 @@ import asyncio
 import csv
 import gzip
 import struct
-from datetime import datetime, timedelta
+import pandas as pd
 from dask import dataframe as dd
-from prefect import flow, task
-
-import pystore
+from datetime import datetime, timedelta
+from prefect import flow, task, get_run_logger
 from loader import DataCenter
 
 
 @task
-def load_duckastopy_to_gzip(ticker: str, day: int):
-    """Download ticker data and store to gzip"""
-    async def download_to_csv(ticker: str, day: int, writer_fn=None):
+def load_duckastopy_to_gzip(ticker: str, day: datetime):
+    """Download tick data for a single and store to gzip"""
+
+    async def download_to_csv(ticker: str, day: datetime, writer_fn=None):
         """Download data & store it to compressed CSV file"""
         ct = DataCenter(timeout=30, use_cache=True)
-        now = datetime.now()
-        now = datetime(now.year, now.month, now.day)
-        to_date = now - timedelta(days=day)
-        hour = now - timedelta(days=day+1)
+
+        hour = datetime(day.year, day.month, day.day)
+        to_date = hour + timedelta(days=1)
+
         while hour <= to_date:
             if hour.weekday() < 5:
                 stream = await ct.get_ticks(ticker, hour)
@@ -45,10 +45,14 @@ def load_duckastopy_to_gzip(ticker: str, day: int):
 
         asyncio.run(download_to_csv(ticker=ticker, day=day, writer_fn=_tmp))
 
+
 @task
-def gzip_to_pystore(ticker: str):
-    """Load gzip into pystore"""
-    df = dd.read_csv(
+def gzip_to_storage(ticker: str):
+    """Load gzip into storage"""
+
+    logger = get_run_logger()
+
+    df = pd.read_csv(
         f"{ticker}.csv.gz",
         blocksize=None,
         header=None,
@@ -56,44 +60,38 @@ def gzip_to_pystore(ticker: str):
         parse_dates=["timestamp"],
     )
     df = df.set_index("timestamp", sorted=True)
-    if df.size.compute() == 0:
-        return
-
     df["bid"] = df["bid"] * 0.00001
     df["ask"] = df["ask"] * 0.00001
 
-    # Store it
-    pystore.set_path("pystore")
-    store = pystore.store("ticks")
-    collection = store.collection("FX")
-    if ticker in collection.items:
-        collection.append(ticker, df, metadata={"source": "Dukascopy"})
-    else:
-        collection.write(ticker, df, metadata={"source": "Dukascopy"})
-
-@task
-def pystore_cleanup(ticker: str):
-    """Optimize data storage"""
-
-    # Store it
-    pystore.set_path("pystore")
-    store = pystore.store("ticks")
-    collection = store.collection("FX")
-    if ticker not in collection.items:
+    if df.size.compute() == 0:
         return
 
-    df = collection.item(ticker).data
-    df = df.reset_index()
-    df = df.drop_duplicates(keep="last", subset="timestamp")
-    df = df.set_index("timestamp", sorted=True)
-    collection.write(ticker, df, metadata={"source": "Dukascopy"}, overwrite=True)
+    # Store it
+    df.to_parquet("folder-fastparquet", engine="fastparquet", append=True)
+
+    collection = _pystore_collection()
+    if ticker in collection.items:
+        collection.append(ticker, df)
+        logger.info("Added %d records" % (len(df)))
+    else:
+        collection.write(ticker, df, metadata={"source": "Dukascopy"})
+        logger.info("Newly created with %d records" % (len(df)))
+
+@task
+def pystore_export_to_digitalocean_space(ticker: str):
+    """Export pystore to DO space"""
+    pass
 
 @flow(name="EURUSD data upgrade", log_prints=True)
 def load_tickers(ticker: str, days: int):
     """Load ticker history"""
-    for day in sorted(range(0, days, 1), reverse=True):
-        load_duckastopy_to_gzip(ticker=ticker, day=day)
-        gzip_to_pystore(ticker)
-    pystore_cleanup(ticker)
 
-load_tickers(ticker="EURUSD", days=10)
+    now = datetime.now()
+
+    for day in range(days, 0, -1):
+        load_duckastopy_to_gzip(ticker=ticker, day=now - timedelta(days=day))
+        gzip_to_storage(ticker)
+    pystore_export_to_digitalocean_space(ticker)
+
+
+load_tickers(ticker="EURUSD", days=10)  # 365 * 10)

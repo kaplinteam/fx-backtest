@@ -147,6 +147,6 @@ def load_tickers(ticker: str, days: int):
     remove_raw_storage(ticker)
 
 
-load_tickers(ticker="EURUSD", days=14)
+#load_tickers(ticker="EURUSD", days=14)
 load_tickers(ticker="SPYUSUSD", days=500)
 load_tickers(ticker="BRENTCMDUSD", days=500)

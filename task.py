@@ -67,12 +67,12 @@ def gzip_to_storage(ticker: str):
     df = df.set_index("timestamp", sorted=True)
 
     # Create directory
-    dir_path = f"storage/{ticker}"
-    if not os.path.exists(dir_path):
-        os.mkdir(dir_path)
+    raw_path = f"storage/{ticker}_raw"
+    if not os.path.exists(raw_path):
+        os.mkdir(raw_path)
 
-    # Store it
-    df.to_parquet(dir_path, engine="fastparquet", append=True, ignore_divisions=True)
+    # Store it to the RAW directory
+    df.to_parquet(raw_path, engine="fastparquet", append=True, ignore_divisions=True)
     logger.info("Added %d records" % (len(df)))
 
 
@@ -80,11 +80,23 @@ def gzip_to_storage(ticker: str):
 def storage_data_clean_and_optimize(ticker: str):
     """Data cleanup and deduplication"""
 
-    dir_path = f"storage/{ticker}"
-    if not os.path.exists(dir_path):
-        return
+    logger = get_run_logger()
+
+    raw_path = f"storage/{ticker}_raw"
+    dist_path = f"storage/{ticker}"
+    if not os.path.exists(dist_path):
+        os.mkdir(raw_path)
 
     # Load & deduplicate
+    df = dd.read_parquet(raw_path)
+    df = df.reset_index()
+    df = df.drop_duplicates(subset=["timestamp"], keep="last")
+    df = df.set_index("timestamp", sorted=True)
+
+    # Write results
+    df.to_parquet(dist_path, engine="fastparquet", ignore_divisions=True)
+
+    logger.info("File converted")
 
 
 @flow(name="EURUSD data upgrade", log_prints=True)
@@ -99,4 +111,4 @@ def load_tickers(ticker: str, days: int):
     storage_data_clean_and_optimize(ticker)
 
 
-load_tickers(ticker="EURUSD", days=20)  # 365 * 10)
+load_tickers(ticker="EURUSD", days=10)

@@ -6,6 +6,7 @@ Test playgorund
 import os
 import csv
 import gzip
+import shutil
 import struct
 import asyncio
 from dask import dataframe as dd
@@ -101,16 +102,47 @@ def storage_data_clean_and_optimize(ticker: str):
     logger.info("Data file stored, %d records total" % (len(df)))
 
 
+@task
+def prepare_raw_storage(ticker: str):
+    """Fill RAW storage with ticker data"""
+
+    raw_path = f"storage/{ticker}_raw"
+    if not os.path.exists(raw_path):
+        os.mkdir(raw_path)
+
+    dist_path = f"storage/{ticker}"
+    if not os.path.exists(dist_path):
+        return
+
+    df = dd.read_parquet(dist_path)
+    df.to_parquet(raw_path, engine="fastparquet", ignore_divisions=True)
+
+    logger.info("Initial raw storage filled with %d records" % (len(df)))
+
+
+@task
+def remove_raw_storage(ticker: str):
+    """Cleanup raw storage"""
+    raw_path = f"storage/{ticker}_raw"
+    if not os.path.exists(raw_path):
+        return
+
+    shutil.rmtree(raw_path)
+
+
 @flow(name="EURUSD data upgrade", log_prints=True)
 def load_tickers(ticker: str, days: int):
     """Load ticker history"""
 
     now = datetime.now()
 
+    remove_raw_storage(ticker)
+    prepare_raw_storage(ticker)
     for day in range(days, 0, -1):
         load_duckastopy_to_gzip(ticker=ticker, day=now - timedelta(days=day))
         gzip_to_storage(ticker)
     storage_data_clean_and_optimize(ticker)
+    remove_raw_storage(ticker)
 
 
 load_tickers(ticker="EURUSD", days=500)

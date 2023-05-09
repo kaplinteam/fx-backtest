@@ -5,6 +5,5 @@ loguru==0.6.0
 pytz==2022.7
 
 prefect==2.10.7
-PyStore==0.1.23
 dask==2023.4.1
 pandas==2.0.1

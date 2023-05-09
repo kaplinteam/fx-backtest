@@ -7,7 +7,6 @@ import asyncio
 import csv
 import gzip
 import struct
-import pandas as pd
 from dask import dataframe as dd
 from datetime import datetime, timedelta
 from prefect import flow, task, get_run_logger
@@ -52,30 +51,23 @@ def gzip_to_storage(ticker: str):
 
     logger = get_run_logger()
 
-    df = pd.read_csv(
+    df = dd.read_csv(
         f"{ticker}.csv.gz",
-        blocksize=None,
         header=None,
         names=["timestamp", "bid", "ask", "bid_size", "ask_size"],
         parse_dates=["timestamp"],
+        blocksize=None,
     )
-    df = df.set_index("timestamp", sorted=True)
     df["bid"] = df["bid"] * 0.00001
     df["ask"] = df["ask"] * 0.00001
+    df = df.set_index("timestamp", sorted=True)
 
     if df.size.compute() == 0:
         return
 
     # Store it
-    df.to_parquet("folder-fastparquet", engine="fastparquet", append=True)
-
-    collection = _pystore_collection()
-    if ticker in collection.items:
-        collection.append(ticker, df)
-        logger.info("Added %d records" % (len(df)))
-    else:
-        collection.write(ticker, df, metadata={"source": "Dukascopy"})
-        logger.info("Newly created with %d records" % (len(df)))
+    df.to_parquet("storage", engine="fastparquet", append=True)
+    logger.info("Added %d records" % (len(df)))
 
 @task
 def pystore_export_to_digitalocean_space(ticker: str):

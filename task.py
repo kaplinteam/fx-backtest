@@ -3,10 +3,11 @@
 Test playgorund
 """
 
-import asyncio
+import os
 import csv
 import gzip
 import struct
+import asyncio
 from dask import dataframe as dd
 from datetime import datetime, timedelta
 from prefect import flow, task, get_run_logger
@@ -56,23 +57,35 @@ def gzip_to_storage(ticker: str):
         header=None,
         names=["timestamp", "bid", "ask", "bid_size", "ask_size"],
         parse_dates=["timestamp"],
-        blocksize=None,
+        blocksize=None,  # blocksize='10MB',
     )
-    df["bid"] = df["bid"] * 0.00001
-    df["ask"] = df["ask"] * 0.00001
-    df = df.set_index("timestamp", sorted=True)
-
     if df.size.compute() == 0:
         return
 
+    df["bid"] = df["bid"].apply(lambda x: x * 0.00001, meta=("bid", "float64"))
+    df["ask"] = df["ask"].apply(lambda x: x * 0.00001, meta=("ask", "float64"))
+    df = df.set_index("timestamp", sorted=True)
+
+    # Create directory
+    dir_path = f"storage/{ticker}"
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+
     # Store it
-    df.to_parquet("storage", engine="fastparquet", append=True)
+    df.to_parquet(dir_path, engine="fastparquet", append=True, ignore_divisions=True)
     logger.info("Added %d records" % (len(df)))
 
+
 @task
-def pystore_export_to_digitalocean_space(ticker: str):
-    """Export pystore to DO space"""
-    pass
+def storage_data_clean_and_optimize(ticker: str):
+    """Data cleanup and deduplication"""
+
+    dir_path = f"storage/{ticker}"
+    if not os.path.exists(dir_path):
+        return
+
+    # Load & deduplicate
+
 
 @flow(name="EURUSD data upgrade", log_prints=True)
 def load_tickers(ticker: str, days: int):
@@ -83,7 +96,7 @@ def load_tickers(ticker: str, days: int):
     for day in range(days, 0, -1):
         load_duckastopy_to_gzip(ticker=ticker, day=now - timedelta(days=day))
         gzip_to_storage(ticker)
-    pystore_export_to_digitalocean_space(ticker)
+    storage_data_clean_and_optimize(ticker)
 
 
-load_tickers(ticker="EURUSD", days=10)  # 365 * 10)
+load_tickers(ticker="EURUSD", days=20)  # 365 * 10)

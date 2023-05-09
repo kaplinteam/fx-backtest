@@ -85,7 +85,7 @@ def storage_data_clean_and_optimize(ticker: str):
     raw_path = f"storage/{ticker}_raw"
     dist_path = f"storage/{ticker}"
     if not os.path.exists(dist_path):
-        os.mkdir(raw_path)
+        os.mkdir(dist_path)
 
     # Load & deduplicate
     df = dd.read_parquet(raw_path)

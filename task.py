@@ -106,6 +106,8 @@ def storage_data_clean_and_optimize(ticker: str):
 def prepare_raw_storage(ticker: str):
     """Fill RAW storage with ticker data"""
 
+    logger = get_run_logger()
+
     raw_path = f"storage/{ticker}_raw"
     if not os.path.exists(raw_path):
         os.mkdir(raw_path)

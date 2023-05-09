@@ -80,7 +80,7 @@ def gzip_to_storage(ticker: str):
 
 
 @task
-def storage_data_clean_and_optimize(ticker: str):
+def store_data_permanently(ticker: str):
     """Data cleanup and deduplication"""
 
     logger = get_run_logger()
@@ -143,8 +143,10 @@ def load_tickers(ticker: str, days: int):
     for day in range(days, 0, -1):
         load_duckastopy_to_gzip(ticker=ticker, day=now - timedelta(days=day))
         gzip_to_storage(ticker)
-    storage_data_clean_and_optimize(ticker)
+    store_data_permanently(ticker)
     remove_raw_storage(ticker)
 
 
-load_tickers(ticker="EURUSD", days=500)
+load_tickers(ticker="EURUSD", days=14)
+load_tickers(ticker="SPYUSUSD", days=500)
+load_tickers(ticker="BRENTCMDUSD", days=500)

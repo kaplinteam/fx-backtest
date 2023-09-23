@@ -1,35 +1,44 @@
 #!/usr/bin/env python
 """Ticker data downloader"""
 
-import asyncio
 import csv
 import gzip
-import struct
-from datetime import datetime, timedelta
 
+import asyncio
 import click
+import struct
+from tqdm import tqdm
+from datetime import datetime, timedelta
 
 from loader import DataCenter
 
 
-async def download_to_csv(pair: str, days: int = 1, writer_fn=None):
-    """Download data & store it to compressed CSV file"""
-    ct = DataCenter(timeout=30, use_cache=True)
+def all_hours(days: int = 1) -> list[datetime]:
+    """Iterate on all hours"""
     now = datetime.now()
     now = datetime(now.year, now.month, now.day)
     from_date = now - timedelta(days=days)
-
     hour = from_date
+
+    res = []
     while hour <= now:
         if hour.weekday() < 5:
-            stream = await ct.get_ticks(pair, hour)
-            out = struct.iter_unpack(ct.format, stream.read())
-            for tick in out:
-                tick = list(tick)
-                tick[0] = hour + timedelta(microseconds=tick[0])
-                if writer_fn is not None:
-                    writer_fn(tick)
-        hour += timedelta(hours=1)
+            res.append(hour)
+    return res
+
+
+async def download_to_csv(pair: str, days: int = 1, writer_fn=None):
+    """Download data & store it to compressed CSV file"""
+    data_center = DataCenter(timeout=30, use_cache=True)
+
+    for hour in tqdm(all_hours(days=days)):
+        stream = await data_center.get_ticks(pair, hour)
+        out = struct.iter_unpack(data_center.format, stream.read())
+        for tick in out:
+            tick = list(tick)
+            tick[0] = hour + timedelta(microseconds=tick[0])
+            if writer_fn is not None:
+                writer_fn(tick)
 
 
 @click.command()
@@ -38,14 +47,17 @@ async def download_to_csv(pair: str, days: int = 1, writer_fn=None):
 def run(days: int = 1, pair: str = "EURUSD"):
     """Download data"""
 
-    f = open(f"{pair}.csv.gz", "wb")
-    with gzip.open(f, "wt") as csvfile:
-        datafile_writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
+    for each_pair in pair.strip().split(" "):
+        click.echo(f"Loading {each_pair}")
 
-        def _tmp(row):
-            datafile_writer.writerow(row)
+        out_file = open(f"{each_pair}.csv.gz", "wb")
+        with gzip.open(out_file, "wt") as csvfile:
+            datafile_writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
 
-        asyncio.run(download_to_csv(pair=pair, days=days, writer_fn=_tmp))
+            def _writer(row):
+                datafile_writer.writerow(row)
+
+            asyncio.run(download_to_csv(pair=each_pair, days=days, writer_fn=_writer))
 
 
 if __name__ == "__main__":

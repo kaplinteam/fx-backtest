@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Ticker data downloader"""
 
+import sys
 import csv
 import gzip
 
@@ -10,6 +11,7 @@ import struct
 from tqdm import tqdm
 from datetime import datetime, timedelta
 
+from loguru import logger
 from loader import DataCenter
 
 
@@ -24,6 +26,7 @@ def all_hours(days: int = 1) -> list[datetime]:
     while hour <= now:
         if hour.weekday() < 5:
             res.append(hour)
+        hour += timedelta(hours=1)
     return res
 
 
@@ -47,10 +50,16 @@ async def download_to_csv(pair: str, days: int = 1, writer_fn=None):
 def run(days: int = 1, pair: str = "EURUSD"):
     """Download data"""
 
+    logger.remove()
+    logger.add(sys.stderr, level="ERROR")
+
     for each_pair in pair.strip().split(" "):
+        if len(each_pair) == 0:
+            continue
+
         click.echo(f"Loading {each_pair}")
 
-        out_file = open(f"{each_pair}.csv.gz", "wb")
+        out_file = open(f"ticks_dukascopy_{each_pair}.csv.gz", "wb")
         with gzip.open(out_file, "wt") as csvfile:
             datafile_writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
 

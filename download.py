@@ -8,16 +8,21 @@ import gzip
 import asyncio
 import click
 import struct
-from tqdm import tqdm
+from loguru import logger
 from datetime import datetime, timedelta
 
-from loguru import logger
 from loader import DataCenter
 
 
-async def download_to_csv(pair: str, hours: list[datetime], writer_fn=None):
+async def download_to_csv(
+    pair: str,
+    hours: list[datetime],
+    writer_fn=None,
+    use_cache: bool = True,
+    threads: int = 3,
+):
     """Download data & store it to compressed CSV file"""
-    data_center = DataCenter(timeout=30, use_cache=True)
+    data_center = DataCenter(timeout=30, use_cache=use_cache, threads=threads)
 
     tuples = await data_center.get_ticks_hours(symbol=pair, hours=hours)
     tuples.sort(key=lambda x: x[0])
@@ -26,29 +31,43 @@ async def download_to_csv(pair: str, hours: list[datetime], writer_fn=None):
         out = struct.iter_unpack(data_center.format, stream.read())
         for tick in out:
             tick = list(tick)
-            tick[0] = hour + timedelta(microseconds=tick[0])
+            tick[0] = hour + timedelta(milliseconds=tick[0])
             if writer_fn is not None:
                 writer_fn(tick)
 
 
 @click.command()
+@click.option("--cache", default=True, help="Use cache")
+@click.option("--threads", default=3, help="Parallel threads")
+@click.option("-v", is_flag=True, default=False, help="Verbose")
 @click.option("--days", default=1, help="Number of days to download.")
 @click.option("--date", default=None, help="Specific date to load (YYYY-MM-DD).")
 @click.option("--pair", default="EURUSD", help="Pair to download.")
-def run(days: int = 1, date: str = None, pair: str = "EURUSD"):
+def run(
+    cache: bool = True,
+    threads: int = 3,
+    v: bool = False,
+    days: int = 1,
+    date: str = None,
+    pair: str = "EURUSD",
+):
     """Download data"""
 
-    logger.remove()
-    #logger.add(sys.stderr, level="ERROR")
+    if not v:
+        logger.remove()
+        logger.add(sys.stderr, level="WARNING")
+
+    if threads < 1:
+        click.echo("Incorrectn umber of threads")
 
     hours_to_load = []
     if date != None:
-        base = datetime.strptime(date, '%Y-%m-%d')
+        base = datetime.strptime(date, "%Y-%m-%d")
         if base.weekday() < 5:
             for i in range(0, 24):
                 hours_to_load.append(base + timedelta(hours=i))
         else:
-            click.echo(f"Date is a weekend")
+            click.echo(f"Weekend")
     else:
         now = datetime.now()
         now = datetime(now.year, now.month, now.day)
@@ -58,7 +77,7 @@ def run(days: int = 1, date: str = None, pair: str = "EURUSD"):
                 hours_to_load.append(hour)
             hour += timedelta(hours=1)
 
-    click.echo(f"Loading {pair}, {len(hours_to_load)} hours")
+    click.echo(f"Loading {pair}, {len(hours_to_load)} hours using {threads} threads")
 
     out_file = open(f"ticks_dukascopy_{pair}.csv.gz", "wb")
     with gzip.open(out_file, "wt") as csvfile:
@@ -67,7 +86,11 @@ def run(days: int = 1, date: str = None, pair: str = "EURUSD"):
         def _writer(row):
             datafile_writer.writerow(row)
 
-        asyncio.run(download_to_csv(pair=pair, hours=hours_to_load, writer_fn=_writer))
+        asyncio.run(
+            download_to_csv(
+                pair=pair, hours=hours_to_load, writer_fn=_writer, use_cache=cache, threads=threads
+            )
+        )
 
 
 if __name__ == "__main__":

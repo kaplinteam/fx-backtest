@@ -49,7 +49,7 @@ class TickLoader:
             logger.warning("Asyncio timeout")
             return False, e
 
-    def download(self, symbol: str, hour: datetime):
+    async def download(self, symbol: str, hour: datetime):
         """returns a coroutine which returns Tuple[(true/false), (data/error)]"""
         params = {
             "currency": symbol,
@@ -59,4 +59,4 @@ class TickLoader:
             "hour": hour.hour,
         }
         url = TickLoader.url.format(**params)
-        return asyncio.create_task(self._fetch(url))
+        return await self._fetch(url)

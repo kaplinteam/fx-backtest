@@ -10,15 +10,21 @@ import pytz
 from loguru import logger
 
 from .downloader import TickLoader
+from .limiter import limit_concurrency
 
 
 class DataCenter:
     def __init__(
-        self, timeout: int = 30, fail_on_count: int = 3, use_cache: bool = True
+        self,
+        timeout: int = 30,
+        fail_on_count: int = 3,
+        use_cache: bool = True,
+        threads: int = 3,
     ):
         self.path = ".cache"
         self.format = "!3i2f"
         self.use_cache = use_cache
+        self.threads = threads
         self.timeout = timeout
         self.fail_count = fail_on_count
         self.initialize()
@@ -144,7 +150,9 @@ class DataCenter:
                 # Not in cache. Download
                 routines.append((h, loader.download(symbol, utc_h)))
             # wait for downloads to complete
-            results = await asyncio.gather(*[i[1] for i in routines])
+            results = await asyncio.gather(
+                *limit_concurrency([i[1] for i in routines], concurrency=self.threads)
+            )
             fail_count = 0
             for _i, _payload in enumerate(results):
                 h = routines[_i][0]

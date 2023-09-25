@@ -8,6 +8,7 @@ from typing import List, Tuple
 import aiohttp
 import pytz
 from loguru import logger
+from tqdm.asyncio import tqdm
 
 from .downloader import TickLoader
 from .limiter import limit_concurrency
@@ -109,21 +110,9 @@ class DataCenter:
         if not self._is_valid_time(hour):
             logger.warning(f"No quotes available for selected time: {_hour}")
             return BytesIO(b"")
-        #
-        _path = self._generate_path((symbol, _hour))
-        _found, _data = self._from_cache(_path)
-        if _found:
-            return BytesIO(_data)
-        # Not in cache. Download data
-        async with aiohttp.ClientSession() as session:
-            loader = TickLoader(session, self.timeout)
-            _success, _data = await loader.download(symbol, hour)
-            if not _success:
-                logger.warning(f"Download failed: {symbol}:{hour}")
-                return BytesIO(b"")
-            _data = self._unlzma(_data)
-            self._to_cache(_path, _data)
-            return BytesIO(_data)
+        
+        hours = self._get_range([_hour])
+        return await self.get_ticks_hours(symbol=symbol, hours=hours)
 
     async def get_ticks_range(
         self, symbol: str, trange: Tuple[datetime, datetime]
@@ -150,9 +139,14 @@ class DataCenter:
                 # Not in cache. Download
                 routines.append((h, loader.download(symbol, utc_h)))
             # wait for downloads to complete
-            results = await asyncio.gather(
-                *limit_concurrency([i[1] for i in routines], concurrency=self.threads)
-            )
+            if len(routines) > 1:
+                results = await tqdm.gather(
+                    *limit_concurrency([i[1] for i in routines], concurrency=self.threads)
+                )
+            else:
+                results = await asyncio.gather(
+                    *limit_concurrency([i[1] for i in routines], concurrency=self.threads)
+                )
             fail_count = 0
             for _i, _payload in enumerate(results):
                 h = routines[_i][0]

@@ -15,27 +15,14 @@ from loguru import logger
 from loader import DataCenter
 
 
-def all_hours(days: int = 1) -> list[datetime]:
-    """Iterate on all hours"""
-    now = datetime.now()
-    now = datetime(now.year, now.month, now.day)
-    from_date = now - timedelta(days=days)
-    hour = from_date
-
-    res = []
-    while hour <= now:
-        if hour.weekday() < 5:
-            res.append(hour)
-        hour += timedelta(hours=1)
-    return res
-
-
-async def download_to_csv(pair: str, days: int = 1, writer_fn=None):
+async def download_to_csv(pair: str, hours: list[datetime], writer_fn=None):
     """Download data & store it to compressed CSV file"""
     data_center = DataCenter(timeout=30, use_cache=True)
 
-    for hour in tqdm(all_hours(days=days)):
-        stream = await data_center.get_ticks(pair, hour)
+    tuples = await data_center.get_ticks_hours(symbol=pair, hours=hours)
+    tuples.sort(key=lambda x: x[0])
+    for tupl in tuples:
+        hour, stream = tupl
         out = struct.iter_unpack(data_center.format, stream.read())
         for tick in out:
             tick = list(tick)
@@ -46,27 +33,41 @@ async def download_to_csv(pair: str, days: int = 1, writer_fn=None):
 
 @click.command()
 @click.option("--days", default=1, help="Number of days to download.")
+@click.option("--date", default=None, help="Specific date to load (YYYY-MM-DD).")
 @click.option("--pair", default="EURUSD", help="Pair to download.")
-def run(days: int = 1, pair: str = "EURUSD"):
+def run(days: int = 1, date: str = None, pair: str = "EURUSD"):
     """Download data"""
 
     logger.remove()
-    logger.add(sys.stderr, level="ERROR")
+    #logger.add(sys.stderr, level="ERROR")
 
-    for each_pair in pair.strip().split(" "):
-        if len(each_pair) == 0:
-            continue
+    hours_to_load = []
+    if date != None:
+        base = datetime.strptime(date, '%Y-%m-%d')
+        if base.weekday() < 5:
+            for i in range(0, 24):
+                hours_to_load.append(base + timedelta(hours=i))
+        else:
+            click.echo(f"Date is a weekend")
+    else:
+        now = datetime.now()
+        now = datetime(now.year, now.month, now.day)
+        hour = now - timedelta(days=days)
+        while hour <= now:
+            if hour.weekday() < 5:
+                hours_to_load.append(hour)
+            hour += timedelta(hours=1)
 
-        click.echo(f"Loading {each_pair}")
+    click.echo(f"Loading {pair}, {len(hours_to_load)} hours")
 
-        out_file = open(f"ticks_dukascopy_{each_pair}.csv.gz", "wb")
-        with gzip.open(out_file, "wt") as csvfile:
-            datafile_writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
+    out_file = open(f"ticks_dukascopy_{pair}.csv.gz", "wb")
+    with gzip.open(out_file, "wt") as csvfile:
+        datafile_writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
 
-            def _writer(row):
-                datafile_writer.writerow(row)
+        def _writer(row):
+            datafile_writer.writerow(row)
 
-            asyncio.run(download_to_csv(pair=each_pair, days=days, writer_fn=_writer))
+        asyncio.run(download_to_csv(pair=pair, hours=hours_to_load, writer_fn=_writer))
 
 
 if __name__ == "__main__":

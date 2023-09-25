@@ -122,8 +122,13 @@ class DataCenter:
     async def get_ticks_range(
         self, symbol: str, trange: Tuple[datetime, datetime]
     ) -> List[Tuple[datetime, BytesIO]]:
-        out = list()
         hours = self._get_range(trange)
+        return await self.get_ticks_hours(symbol=symbol, hours=hours)
+
+    async def get_ticks_hours(
+        self, symbol: str, hours: list[datetime]
+    ) -> List[Tuple[datetime, BytesIO]]:
+        out = list()
         async with aiohttp.ClientSession() as session:
             routines = list()
             loader = TickLoader(session, self.timeout)

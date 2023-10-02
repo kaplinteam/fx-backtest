@@ -43,11 +43,13 @@ async def download_to_csv(
         hour, stream = tupl
         out = struct.iter_unpack(data_center.format, stream.read())
         for ticks in batched(out, 100):
+            points = []
             for tick in ticks:
                 tick = list(tick)
                 tick[0] = hour + timedelta(milliseconds=tick[0])
+                points.append(tick)
             if writer_fn:
-                writer_fn(ticks)
+                writer_fn(points)
 
 
 @click.command()
@@ -108,16 +110,12 @@ def run(
             #points = [f'{timeseries} bid=123,ask=123,bidSize=123,askSize=123 1556813561098000000' for value in values]
             #write_api.write(bucket=influx, record=rows)
 
-        click.echo(f"Loading")
         asyncio.run(
             download_to_csv(
                 pair=pair, hours=hours_to_load, writer_fn=_writer, use_cache=cache, threads=threads
             )
         )
-        click.echo(f"Loading")
-
     else:
-        click.echo(f"Loading213")
         out_file = open(f"ticks_dukascopy_{pair}.csv.gz", "wb")
         with gzip.open(out_file, "wt") as csvfile:
             datafile_writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)

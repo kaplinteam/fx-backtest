@@ -111,8 +111,7 @@ class DataCenter:
             logger.warning(f"No quotes available for selected time: {_hour}")
             return BytesIO(b"")
         
-        hours = self._get_range([_hour])
-        return await self.get_ticks_hours(symbol=symbol, hours=hours)
+        return await self.get_ticks_hours(symbol=symbol, hours=[_hour])
 
     async def get_ticks_range(
         self, symbol: str, trange: Tuple[datetime, datetime]

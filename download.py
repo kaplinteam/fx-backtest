@@ -102,12 +102,11 @@ def run(
         org = os.environ.get("INFLUXDB_ORG", "org")
         token = os.environ.get("INFLUXDB_TOKEN")
         client = InfluxDBClient(url=url, token=token, org=org)
-        write_api = client.write_api(write_options=SYNCHRONOUS)
 
         def _writer(rows):
             points = [f'{influx} bid={row[1]},ask={row[2]},bidSize={round(row[3], 4)},askSize={round(row[4], 4)} {int(row[0].timestamp() * 1000)}' for row in rows]
-            if not write_api.write_points(points, protocol='line', time_precision='ms'):
-                click.echo(f"Write to influx failed")
+            if not client.write_points(points, protocol='line', time_precision='ms'):
+                click.echo(f"Write to influx")
 
         asyncio.run(
             download_to_csv(

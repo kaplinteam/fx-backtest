@@ -87,11 +87,11 @@ def run(
         else:
             click.echo(f"Weekend")
     else:
-        print(1)
         now = datetime.now()
         now = datetime(now.year, now.month, now.day)
         hour = now - timedelta(days=days)
         while hour <= now:
+            print(hour)
             if hour.weekday() < 5:
                 hours_to_load.append(hour)
             hour += timedelta(hours=1)

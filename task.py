@@ -32,7 +32,7 @@ def load_hour_data(ticker: str, hour: datetime):
         async def download_to_csv(ticker: str, hour: datetime):
             """Download data & store it to compressed CSV file"""
             ct = DataCenter(timeout=30, use_cache=True)
-            stream = await ct.get_ticks(ticker, hour)
+            stream = await ct.get_ticks_hours(ticker, [hour])
             out = struct.iter_unpack(ct.format, stream.read())
             rows = []
             for row in out:

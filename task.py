@@ -62,4 +62,14 @@ def load_last_days(ticker: str, days: int):
                 load_hour_data(ticker=ticker, hour=day+timedelta(hours=i))
 
 
+load_last_days(ticker="USA500IDXUSD", days=10)
+load_last_days(ticker="USATECHIDXUSD", days=10)
+
+load_last_days(ticker="LIGHTCMDUSD", days=10)
 load_last_days(ticker="BRENTCMDUSD", days=10)
+
+load_last_days(ticker="COPPERCMDUSD", days=10)
+load_last_days(ticker="XPDCMDUSD", days=10)
+load_last_days(ticker="XPTCMDUSD", days=10)
+load_last_days(ticker="XAUUSD", days=10)
+load_last_days(ticker="XAGUSD", days=10)

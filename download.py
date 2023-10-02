@@ -90,7 +90,7 @@ def run(
         now = datetime.now()
         now = datetime(now.year, now.month, now.day)
         hour = now - timedelta(days=days)
-        while hour <= now:
+        while hour < now:
             print(hour)
             if hour.weekday() < 5:
                 hours_to_load.append(hour)

@@ -101,19 +101,19 @@ def run(
         url = os.environ.get("INFLUXDB_HOST", "http://localhost:8086")
         org = os.environ.get("INFLUXDB_ORG", "org")
         token = os.environ.get("INFLUXDB_TOKEN")
-        client = InfluxDBClient(url=url, token=token, org=org)
-        write_api = client.write_api(write_options=SYNCHRONOUS)
+        with InfluxDBClient(url=url, token=token, org=org, debug=True) as client:
+            write_api = client.write_api(write_options=SYNCHRONOUS)
 
-        def _writer(rows):
-            points = [f'{influx} bid={row[1]},ask={row[2]},bidSize={round(row[3], 4)},askSize={round(row[4], 4)} {int(row[0].timestamp() * 1000)}' for row in rows]
-            r = write_api.write(bucket=influx, point=points, time_precision='ms')
-            print(r)
+            def _writer(rows):
+                points = [f'{pair} bid={row[1]},ask={row[2]},bidSize={round(row[3], 4)},askSize={round(row[4], 4)} {int(row[0].timestamp() * 1000)}' for row in rows]
+                r = write_api.write(bucket=influx, record=points, write_precision=WritePrecision.MS)
+                print(r)
 
-        asyncio.run(
-            download_to_csv(
-                pair=pair, hours=hours_to_load, writer_fn=_writer, use_cache=cache, threads=threads
+            asyncio.run(
+                download_to_csv(
+                    pair=pair, hours=hours_to_load, writer_fn=_writer, use_cache=cache, threads=threads
+                )
             )
-        )
     else:
         out_file = open(f"ticks_dukascopy_{pair}.csv.gz", "wb")
         with gzip.open(out_file, "wt") as csvfile:

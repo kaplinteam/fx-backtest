@@ -106,8 +106,7 @@ def run(
 
         def _writer(rows):
             points = [f'{influx} bid={row[1]},ask={row[2]},bidSize={round(row[3], 4)},askSize={round(row[4], 4)} {int(row[0].timestamp() * 1000)}' for row in rows]
-            print(points)
-            #write_api.write(bucket=influx, record=rows, time_precision='ms')
+            write_api.write(bucket=influx, record=rows, time_precision='ms')
 
         asyncio.run(
             download_to_csv(

@@ -24,6 +24,7 @@ def load_hour_data(ticker: str, hour: datetime):
 
     url = os.environ.get("INFLUXDB_HOST", "http://localhost:8086")
     org = os.environ.get("INFLUXDB_ORG", "org")
+    bucket = os.environ.get("INFLUXDB_BUCKET", "DUKASCOPY")
     token = os.environ.get("INFLUXDB_TOKEN")
 
     with InfluxDBClient(url=url, token=token, org=org, debug=False) as client:
@@ -41,7 +42,7 @@ def load_hour_data(ticker: str, hour: datetime):
                 line = f'{ticker} bid={row[1]},ask={row[2]},bidSize={round(row[3], 4)},askSize={round(row[4], 4)} {ts}'
                 rows.append(line)
 
-            write_api.write(bucket=influx, record=rows, write_precision=WritePrecision.MS)
+            write_api.write(bucket=bucket, record=rows, write_precision=WritePrecision.MS)
 
 
         asyncio.run(download_to_csv(ticker=ticker, hour=hour))

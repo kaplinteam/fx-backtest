@@ -34,17 +34,15 @@ def load_hour_data(ticker: str, hour: datetime):
             ct = DataCenter(timeout=30, use_cache=True)
             stream = await ct.get_ticks(ticker, hour)
             out = struct.iter_unpack(ct.format, stream.read())
-            for tick in out:
-                tick = list(tick)
-                tick[0] = hour + timedelta(microseconds=tick[0])
+            rows = []
+            for row in out:
+                row = list(row)
+                ts = int((hour + timedelta(microseconds=row[0])).timestamp() * 1000)
+                line = f'{ticker} bid={row[1]},ask={row[2]},bidSize={round(row[3], 4)},askSize={round(row[4], 4)} {ts}'
+                rows.append(line)
 
-                if writer_fn is not None:
-                    writer_fn(tick)
+            write_api.write(bucket=influx, record=rows, write_precision=WritePrecision.MS)
 
-
-        def _writer(rows):
-            points = [f'{ticker} bid={row[1]},ask={row[2]},bidSize={round(row[3], 4)},askSize={round(row[4], 4)} {int(row[0].timestamp() * 1000)}' for row in rows]
-            write_api.write(bucket=influx, record=points, write_precision=WritePrecision.MS)
 
         asyncio.run(download_to_csv(ticker=ticker, hour=hour, writer_fn=_writer))
 

@@ -52,26 +52,28 @@ def load_hour_data(ticker: str, hour: datetime):
     return
 
 
-@flow(name="Loading ticker for last N days", log_prints=True)
-def load_last_days(ticker: str, days: int):
+@flow(name="Loading tickers for last N days", log_prints=True)
+def load_last_days(tickers: list[str], days: int):
     """Load ticker history"""
 
     now = datetime.now()
-    for day in range(days, 0, -1):
-        day = datetime(now.year, now.month, now.day) - timedelta(days=day)
-        if day.weekday() < 5:
-            for i in range(0, 24):
-                load_hour_data(ticker=ticker, hour=day+timedelta(hours=i))
+    now = datetime(now.year, now.month, now.day)
+
+    for ticker in tickers:
+        for day in range(days, 0, -1):
+            day = now - timedelta(days=day)
+            if day.weekday() < 5:
+                for i in range(0, 24):
+                    load_hour_data(ticker=ticker, hour=day+timedelta(hours=i))
 
 
-load_last_days(ticker="USA500IDXUSD", days=10)
-load_last_days(ticker="USATECHIDXUSD", days=10)
-
-load_last_days(ticker="LIGHTCMDUSD", days=10)
-load_last_days(ticker="BRENTCMDUSD", days=10)
-
-load_last_days(ticker="COPPERCMDUSD", days=10)
-load_last_days(ticker="XPDCMDUSD", days=10)
-load_last_days(ticker="XPTCMDUSD", days=10)
-load_last_days(ticker="XAUUSD", days=10)
-load_last_days(ticker="XAGUSD", days=10)
+load_last_days(days=10, tickers=[
+    "USA500IDXUSD",
+    "USATECHIDXUSD",
+    "LIGHTCMDUSD",
+    "BRENTCMDUSD",
+    "COPPERCMDUSD",
+    "XPDCMDUSD",
+    "XPTCMDUSD",
+    "XAUUSD",
+    "XAGUSD"])

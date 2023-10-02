@@ -7,12 +7,12 @@ token = os.environ.get("INFLUXDB_TOKEN")
 org = "org"
 url = "http://localhost:8086"
 
-write_client = influxdb_client.InfluxDBClient(url=url, token=token, org=org)
+client = influxdb_client.InfluxDBClient(url=url, token=token, org=org)
 
 
 bucket="fin_1"
 
-write_api = write_client.write_api(write_options=SYNCHRONOUS)
+write_api = client.write_api(write_options=SYNCHRONOUS)
    
 for value in range(5):
   point = (
@@ -23,11 +23,10 @@ for value in range(5):
   write_api.write(bucket=bucket, org="org", record=point)
   time.sleep(1)
 
-
-query_api = client.query_api()
 query = """from(bucket: "fin_1")
- |> range(start: -10m)
- |> filter(fn: (r) => r._measurement == "measurement1")"""
+  |> range(start: -10m)
+  |> filter(fn: (r) => r._measurement == "measurement1")
+  |> mean()"""
 tables = query_api.query(query, org="org")
 
 for table in tables:

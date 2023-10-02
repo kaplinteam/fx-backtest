@@ -117,6 +117,7 @@ def run(
         click.echo(f"Loading")
 
     else:
+        click.echo(f"Loading213")
         out_file = open(f"ticks_dukascopy_{pair}.csv.gz", "wb")
         with gzip.open(out_file, "wt") as csvfile:
             datafile_writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)

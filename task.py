@@ -16,137 +16,60 @@ from loader import DataCenter
 
 
 @task
-def load_duckastopy_to_gzip(ticker: str, day: datetime):
-    """Download tick data for a single and store to gzip"""
+def load_hour_data(ticker: str, hour: datetime):
+    """Load data for a hour"""
 
-    async def download_to_csv(ticker: str, day: datetime, writer_fn=None):
-        """Download data & store it to compressed CSV file"""
-        ct = DataCenter(timeout=30, use_cache=True)
+    url = os.environ.get("INFLUXDB_HOST", "http://localhost:8086")
+    org = os.environ.get("INFLUXDB_ORG", "org")
+    token = os.environ.get("INFLUXDB_TOKEN")
 
-        hour = datetime(day.year, day.month, day.day)
-        to_date = hour + timedelta(days=1)
+    with InfluxDBClient(url=url, token=token, org=org, debug=False) as client:
+        write_api = client.write_api(write_options=SYNCHRONOUS)
 
-        while hour <= to_date:
-            if hour.weekday() < 5:
-                stream = await ct.get_ticks(ticker, hour)
-                out = struct.iter_unpack(ct.format, stream.read())
-                for tick in out:
-                    tick = list(tick)
-                    tick[0] = hour + timedelta(microseconds=tick[0])
-                    if writer_fn is not None:
-                        writer_fn(tick)
-            hour += timedelta(hours=1)
+        async def download_to_csv(ticker: str, day: datetime, writer_fn=None):
+            """Download data & store it to compressed CSV file"""
+            ct = DataCenter(timeout=30, use_cache=True)
+            stream = await ct.get_ticks(ticker, hour)
+            out = struct.iter_unpack(ct.format, stream.read())
+            for tick in out:
+                tick = list(tick)
+                tick[0] = hour + timedelta(microseconds=tick[0])
 
-    logger = get_run_logger()
-    f = open(f"{ticker}.csv.gz", "wb")
-    with gzip.open(f, "wt") as csvfile:
-        datafile_writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
-
-        def _tmp(row):
-            datafile_writer.writerow(row)
-
-        asyncio.run(download_to_csv(ticker=ticker, day=day, writer_fn=_tmp))
+                if writer_fn is not None:
+                    writer_fn(tick)
 
 
-@task
-def gzip_to_storage(ticker: str):
-    """Load gzip into storage"""
+        def _writer(rows):
+            points = [f'{ticker} bid={row[1]},ask={row[2]},bidSize={round(row[3], 4)},askSize={round(row[4], 4)} {int(row[0].timestamp() * 1000)}' for row in rows]
+            write_api.write(bucket=influx, record=points, write_precision=WritePrecision.MS)
 
-    logger = get_run_logger()
+        asyncio.run(
+            download_to_csv(
+                ticker=ticker, hours=hours_to_load, writer_fn=_writer, use_cache=cache, threads=threads
+            )
+        )
 
-    df = dd.read_csv(
-        f"{ticker}.csv.gz",
-        header=None,
-        names=["timestamp", "bid", "ask", "bid_size", "ask_size"],
-        blocksize=None,  # blocksize='10MB',
-    )
-    df["timestamp"] = dd.to_datetime(df["timestamp"], errors="coerce")
-    df = df.dropna()
-    if df.size.compute() == 0:
-        return
-
-    df["bid"] = df["bid"].apply(lambda x: x * 0.00001, meta=("bid", "float64"))
-    df["ask"] = df["ask"].apply(lambda x: x * 0.00001, meta=("ask", "float64"))
-    df = df.set_index("timestamp", sorted=True)
-
-    # Create directory
-    raw_path = f"storage/{ticker}_raw"
-    if not os.path.exists(raw_path):
-        os.mkdir(raw_path)
-
-    # Store it to the RAW directory
-    df.to_parquet(raw_path, engine="fastparquet", append=True, ignore_divisions=True)
-    logger.info("Added %d records" % (len(df)))
+    return
 
 
 @task
-def store_data_permanently(ticker: str):
-    """Data cleanup and deduplication"""
-
-    logger = get_run_logger()
-
-    raw_path = f"storage/{ticker}_raw"
-    dist_path = f"storage/{ticker}"
-    if not os.path.exists(dist_path):
-        os.mkdir(dist_path)
-
-    # Load & deduplicate
-    df = dd.read_parquet(raw_path)
-    df = df.reset_index()
-    df = df.drop_duplicates(subset=["timestamp"], keep="last")
-    df = df.set_index("timestamp", sorted=True)
-
-    # Write results
-    df.to_parquet(dist_path, engine="fastparquet", ignore_divisions=True)
-
-    logger.info("Data file stored, %d records total" % (len(df)))
+def load_day_data(ticker: str, day: datetime):
+    """Load data for a day"""
+    day_start = datetime(day.year, day.month, day.day)
+    for i in range(0, 24):
+        load_hour_data(ticker=ticker, hour=day_start+timedelta(hours=i))
 
 
-@task
-def prepare_raw_storage(ticker: str):
-    """Fill RAW storage with ticker data"""
-
-    logger = get_run_logger()
-
-    raw_path = f"storage/{ticker}_raw"
-    if not os.path.exists(raw_path):
-        os.mkdir(raw_path)
-
-    dist_path = f"storage/{ticker}"
-    if not os.path.exists(dist_path):
-        return
-
-    df = dd.read_parquet(dist_path)
-    df.to_parquet(raw_path, engine="fastparquet", ignore_divisions=True)
-
-    logger.info("Initial raw storage filled with %d records" % (len(df)))
-
-
-@task
-def remove_raw_storage(ticker: str):
-    """Cleanup raw storage"""
-    raw_path = f"storage/{ticker}_raw"
-    if not os.path.exists(raw_path):
-        return
-
-    shutil.rmtree(raw_path)
-
-
-@flow(name="EURUSD data upgrade", log_prints=True)
-def load_tickers(ticker: str, days: int):
+@flow(name="Loading ticker for last N days", log_prints=True)
+def load_last_days(ticker: str, days: int):
     """Load ticker history"""
 
     now = datetime.now()
-
-    remove_raw_storage(ticker)
-    prepare_raw_storage(ticker)
     for day in range(days, 0, -1):
-        load_duckastopy_to_gzip(ticker=ticker, day=now - timedelta(days=day))
-        gzip_to_storage(ticker)
-    store_data_permanently(ticker)
-    remove_raw_storage(ticker)
+        day = now - timedelta(days=day)
+        load_day_data(ticker=ticker, day=day)
 
 
-# load_tickers(ticker="EURUSD", days=14)
-load_tickers(ticker="SPYUSUSD", days=500)
-load_tickers(ticker="BRENTCMDUSD", days=500)
+load_last_days(ticker="EURUSD", days=14)
+
+load_last_days(ticker="BRENTCMDUSD", days=10)

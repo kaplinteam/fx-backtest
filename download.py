@@ -46,7 +46,8 @@ async def download_to_csv(
             for tick in ticks:
                 tick = list(tick)
                 tick[0] = hour + timedelta(milliseconds=tick[0])
-            writer_fn(ticks)
+            if writer_fn:
+                writer_fn(ticks)
 
 
 @click.command()

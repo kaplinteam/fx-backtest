@@ -9,7 +9,11 @@ import asyncio
 import click
 import struct
 from loguru import logger
+from itertools import batched
 from datetime import datetime, timedelta
+import influxdb_client, os, time
+from influxdb_client import InfluxDBClient, Point, WritePrecision
+from influxdb_client.client.write_api import SYNCHRONOUS
 
 from loader import DataCenter
 
@@ -29,12 +33,30 @@ async def download_to_csv(
     for tupl in tuples:
         hour, stream = tupl
         out = struct.iter_unpack(data_center.format, stream.read())
-        for tick in out:
-            tick = list(tick)
-            tick[0] = hour + timedelta(milliseconds=tick[0])
-            if writer_fn is not None:
-                writer_fn(tick)
+        for ticks in batched(out, 1000):
+            for tick in ticks:
+                tick = list(tick)
+                tick[0] = hour + timedelta(milliseconds=tick[0])
+            writer_fn(ticks)
 
+
+def push_to_influx(rows):
+    """Push data to Influx"""
+        client = InfluxDBClient(url=url, token=token, org=org)
+        write_api = client.write_api(write_options=SYNCHRONOUS)
+        query_api = client.query_api()
+
+        bucket="LIGHTCMDUSD"
+
+        write_api = client.write_api(write_options=SYNCHRONOUS)
+        for values in batched(data, 100):
+
+            points = [f'{timeseries} bid=123,ask=123,bidSize=123,askSize=123 1556813561098000000' for value in values]
+            for point in points:
+            print(point)
+            break
+            #write_api.write(bucket=bucket, org="org", record=point)
+            #client.write_points(value, time_precision='ms')
 
 @click.command()
 @click.option("--cache", default=True, help="Use cache")
@@ -43,6 +65,7 @@ async def download_to_csv(
 @click.option("--days", default=1, help="Number of days to download.")
 @click.option("--date", default=None, help="Specific date to load (YYYY-MM-DD).")
 @click.option("--pair", default="EURUSD", help="Pair to download.")
+@click.option("--influx", default=None, help="Influx db bucket to store data to (INFLUXDB_TOKEN should be set)")
 def run(
     cache: bool = True,
     threads: int = 3,
@@ -50,6 +73,7 @@ def run(
     days: int = 1,
     date: str = None,
     pair: str = "EURUSD",
+    influx: str = False,
 ):
     """Download data"""
 
@@ -79,18 +103,38 @@ def run(
 
     click.echo(f"Loading {pair}, {len(hours_to_load)} hours using {threads} threads")
 
-    out_file = open(f"ticks_dukascopy_{pair}.csv.gz", "wb")
-    with gzip.open(out_file, "wt") as csvfile:
-        datafile_writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
+    if influx is not None and len(influx) > 0:
+        url = os.environ.get("INFLUXDB_HOST", "http://localhost:8086")
+        org = os.environ.get("INFLUXDB_ORG", "org")
+        token = os.environ.get("INFLUXDB_TOKEN")
+        client = InfluxDBClient(url=url, token=token, org=org)
+        write_api = client.write_api(write_options=SYNCHRONOUS)
 
-        def _writer(row):
-            datafile_writer.writerow(row)
+        def _writer(rows):
+            for row in rows:
+                print(row)
+            #write_api.write(bucket=influx, record=rows)
 
         asyncio.run(
             download_to_csv(
                 pair=pair, hours=hours_to_load, writer_fn=_writer, use_cache=cache, threads=threads
             )
         )
+
+    else:
+        out_file = open(f"ticks_dukascopy_{pair}.csv.gz", "wb")
+        with gzip.open(out_file, "wt") as csvfile:
+            datafile_writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
+
+            def _writer(rows):
+                for row in rows:
+                    datafile_writer.writerow(row)
+
+            asyncio.run(
+                download_to_csv(
+                    pair=pair, hours=hours_to_load, writer_fn=_writer, use_cache=cache, threads=threads
+                )
+            )
 
 
 if __name__ == "__main__":

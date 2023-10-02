@@ -53,7 +53,7 @@ def load_hour_data(ticker: str, hour: datetime):
 
 
 @flow(name="Loading tickers for last N days", log_prints=True)
-def load_last_days(tickers: list[str], days: int):
+def load_last_days_depth(tickers: list[str], days: int):
     """Load ticker history"""
 
     now = datetime.now()
@@ -67,7 +67,7 @@ def load_last_days(tickers: list[str], days: int):
                     load_hour_data(ticker=ticker, hour=day+timedelta(hours=i))
 
 
-load_last_days(days=10, tickers=[
+load_last_days_depth(days=30, tickers=[
     "USA500IDXUSD",
     "USATECHIDXUSD",
     "LIGHTCMDUSD",

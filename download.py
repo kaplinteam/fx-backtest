@@ -108,11 +108,13 @@ def run(
             #points = [f'{timeseries} bid=123,ask=123,bidSize=123,askSize=123 1556813561098000000' for value in values]
             #write_api.write(bucket=influx, record=rows)
 
+        click.echo(f"Loading")
         asyncio.run(
             download_to_csv(
                 pair=pair, hours=hours_to_load, writer_fn=_writer, use_cache=cache, threads=threads
             )
         )
+        click.echo(f"Loading")
 
     else:
         out_file = open(f"ticks_dukascopy_{pair}.csv.gz", "wb")

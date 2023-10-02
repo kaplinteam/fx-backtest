@@ -62,6 +62,4 @@ def load_last_days(ticker: str, days: int):
             load_hour_data(ticker=ticker, hour=day+timedelta(hours=i))
 
 
-load_last_days(ticker="EURUSD", days=14)
-
 load_last_days(ticker="BRENTCMDUSD", days=10)

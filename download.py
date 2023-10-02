@@ -40,24 +40,6 @@ async def download_to_csv(
             writer_fn(ticks)
 
 
-def push_to_influx(rows):
-    """Push data to Influx"""
-        client = InfluxDBClient(url=url, token=token, org=org)
-        write_api = client.write_api(write_options=SYNCHRONOUS)
-        query_api = client.query_api()
-
-        bucket="LIGHTCMDUSD"
-
-        write_api = client.write_api(write_options=SYNCHRONOUS)
-        for values in batched(data, 100):
-
-            points = [f'{timeseries} bid=123,ask=123,bidSize=123,askSize=123 1556813561098000000' for value in values]
-            for point in points:
-            print(point)
-            break
-            #write_api.write(bucket=bucket, org="org", record=point)
-            #client.write_points(value, time_precision='ms')
-
 @click.command()
 @click.option("--cache", default=True, help="Use cache")
 @click.option("--threads", default=3, help="Parallel threads")
@@ -113,6 +95,7 @@ def run(
         def _writer(rows):
             for row in rows:
                 print(row)
+            #points = [f'{timeseries} bid=123,ask=123,bidSize=123,askSize=123 1556813561098000000' for value in values]
             #write_api.write(bucket=influx, record=rows)
 
         asyncio.run(

@@ -105,10 +105,9 @@ def run(
         write_api = client.write_api(write_options=SYNCHRONOUS)
 
         def _writer(rows):
-            for row in rows:
-                print(row)
-            #points = [f'{timeseries} bid=123,ask=123,bidSize=123,askSize=123 1556813561098000000' for value in values]
-            #write_api.write(bucket=influx, record=rows)
+            points = [f'{int(tick[0].timestamp() * 1000)} bid={row[1]},ask={row[2]},bidSize={row[3]},askSize={row[4]} {ts}' for row in rows]
+            print(points)
+            #write_api.write(bucket=influx, record=rows, time_precision='ms')
 
         asyncio.run(
             download_to_csv(

@@ -32,7 +32,7 @@ def load_hour_data(ticker: str, hour: datetime):
         async def download_to_csv(ticker: str, hour: datetime):
             """Download data & store it to compressed CSV file"""
             ct = DataCenter(timeout=30, use_cache=True)
-            stream = await ct.get_ticks_hours(ticker, [hour])
+            stream = await ct.get_ticks(ticker, hour)
             out = struct.iter_unpack(ct.format, stream.read())
             rows = []
             for row in out:
@@ -56,8 +56,9 @@ def load_last_days(ticker: str, days: int):
     now = datetime.now()
     for day in range(days, 0, -1):
         day = datetime(now.year, now.month, now.day) - timedelta(days=day)
-        for i in range(0, 24):
-            load_hour_data(ticker=ticker, hour=day+timedelta(hours=i))
+        if day.weekday() < 5:
+            for i in range(0, 24):
+                load_hour_data(ticker=ticker, hour=day+timedelta(hours=i))
 
 
 load_last_days(ticker="BRENTCMDUSD", days=10)

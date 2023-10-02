@@ -105,7 +105,7 @@ def run(
             write_api = client.write_api(write_options=SYNCHRONOUS)
 
             def _writer(rows):
-                points = [f'{influx} bid={row[1]},ask={row[2]},bidSize={round(row[3], 4)},askSize={round(row[4], 4)} {int(row[0].timestamp() * 1000)}' for row in rows]
+                points = [f'{pair} bid={row[1]},ask={row[2]},bidSize={round(row[3], 4)},askSize={round(row[4], 4)} {int(row[0].timestamp() * 1000)}' for row in rows]
                 for point in points:
                     r = write_api.write(bucket=influx, record=point, write_precision=WritePrecision.MS)
                     print(r)

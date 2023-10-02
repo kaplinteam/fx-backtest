@@ -22,3 +22,14 @@ for value in range(5):
   )
   write_api.write(bucket=bucket, org="org", record=point)
   time.sleep(1)
+
+
+query_api = client.query_api()
+query = """from(bucket: "fin_1")
+ |> range(start: -10m)
+ |> filter(fn: (r) => r._measurement == "measurement1")"""
+tables = query_api.query(query, org="org")
+
+for table in tables:
+  for record in table.records:
+    print(record)

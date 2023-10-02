@@ -12,6 +12,9 @@ import asyncio
 from dask import dataframe as dd
 from datetime import datetime, timedelta
 from prefect import flow, task, get_run_logger
+from influxdb_client import InfluxDBClient, Point, WritePrecision
+from influxdb_client.client.write_api import SYNCHRONOUS
+
 from loader import DataCenter
 
 

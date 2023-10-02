@@ -9,6 +9,7 @@ import asyncio
 import click
 import struct
 from loguru import logger
+from itertools import islice
 from datetime import datetime, timedelta
 import influxdb_client, os, time
 from influxdb_client import InfluxDBClient, Point, WritePrecision

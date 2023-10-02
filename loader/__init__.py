@@ -112,7 +112,9 @@ class DataCenter:
             return BytesIO(b"")
         
         result = await self.get_ticks_hours(symbol=symbol, hours=[_hour])
-        return result[0][0]
+        if result is None:
+            return None
+        return result[0][1]
 
     async def get_ticks_range(
         self, symbol: str, trange: Tuple[datetime, datetime]

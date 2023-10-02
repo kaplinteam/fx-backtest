@@ -16,10 +16,14 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 
 from loader import DataCenter
 
-def _batched(iterable, n=1):
-    l = len(iterable)
-    for ndx in range(0, l, n):
-        yield iterable[ndx:min(ndx + n, l)]
+
+def batched(iterable, n):
+    "Batch data into tuples of length n. The last batch may be shorter."
+    if n < 1:
+        raise ValueError('n must be at least one')
+    it = iter(iterable)
+    while (batch := tuple(islice(it, n))):
+        yield batch
 
 
 async def download_to_csv(
@@ -37,7 +41,7 @@ async def download_to_csv(
     for tupl in tuples:
         hour, stream = tupl
         out = struct.iter_unpack(data_center.format, stream.read())
-        for ticks in _batched(out, 1000):
+        for ticks in batched(out, 100):
             for tick in ticks:
                 tick = list(tick)
                 tick[0] = hour + timedelta(milliseconds=tick[0])

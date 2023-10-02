@@ -24,5 +24,5 @@ def write_data_to_influx(client: InfluxDBClient, data: list, bucket: str, timese
       print(point)
     break
     #write_api.write(bucket=bucket, org="org", record=point)
-    #client.write_points(value, time_precision='ms')
+    #client.write_points(points, time_precision='ms')
 

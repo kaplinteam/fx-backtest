@@ -100,7 +100,7 @@ def run(
         url = os.environ.get("INFLUXDB_HOST", "http://localhost:8086")
         org = os.environ.get("INFLUXDB_ORG", "org")
         token = os.environ.get("INFLUXDB_TOKEN")
-        with InfluxDBClient(url=url, token=token, org=org, debug=False) as client:
+        with InfluxDBClient(url=url, token=token, org=org, debug=True) as client:
             write_api = client.write_api(write_options=SYNCHRONOUS)
 
             def _writer(rows):

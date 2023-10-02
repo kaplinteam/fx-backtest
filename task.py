@@ -52,22 +52,15 @@ def load_hour_data(ticker: str, hour: datetime):
     return
 
 
-@task
-def load_day_data(ticker: str, day: datetime):
-    """Load data for a day"""
-    day_start = datetime(day.year, day.month, day.day)
-    for i in range(0, 24):
-        load_hour_data(ticker=ticker, hour=day_start+timedelta(hours=i))
-
-
 @flow(name="Loading ticker for last N days", log_prints=True)
 def load_last_days(ticker: str, days: int):
     """Load ticker history"""
 
     now = datetime.now()
     for day in range(days, 0, -1):
-        day = now - timedelta(days=day)
-        load_day_data(ticker=ticker, day=day)
+        day = datetime(now.year, now.month, now.day) - timedelta(days=day)
+        for i in range(0, 24):
+            load_hour_data(ticker=ticker, hour=day+timedelta(hours=i))
 
 
 load_last_days(ticker="EURUSD", days=14)

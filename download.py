@@ -81,20 +81,18 @@ def run(
     hours_to_load = []
     if date != None:
         base = datetime.strptime(date, "%Y-%m-%d")
-        if base.weekday() < 5:
-            for i in range(0, 24):
-                hours_to_load.append(base + timedelta(hours=i))
-        else:
-            click.echo(f"Weekend")
+        for i in range(0, 24):
+            hours_to_load.append(base + timedelta(hours=i))
     else:
         now = datetime.now()
         now = datetime(now.year, now.month, now.day)
         hour = now - timedelta(days=days)
         while hour < now:
-            print(hour)
-            if hour.weekday() < 5:
-                hours_to_load.append(hour)
+            hours_to_load.append(hour)
             hour += timedelta(hours=1)
+
+    # Remove non workign hours
+    hours_to_load = [hour for hour in hours_to_load if hour.weekday() < 5]
 
     click.echo(f"Loading {pair}, {len(hours_to_load)} hours using {threads} threads")
 

@@ -29,7 +29,7 @@ def load_hour_data(ticker: str, hour: datetime):
     with InfluxDBClient(url=url, token=token, org=org, debug=False) as client:
         write_api = client.write_api(write_options=SYNCHRONOUS)
 
-        async def download_to_csv(ticker: str, hour: datetime, writer_fn=None):
+        async def download_to_csv(ticker: str, hour: datetime):
             """Download data & store it to compressed CSV file"""
             ct = DataCenter(timeout=30, use_cache=True)
             stream = await ct.get_ticks(ticker, hour)
@@ -44,7 +44,7 @@ def load_hour_data(ticker: str, hour: datetime):
             write_api.write(bucket=influx, record=rows, write_precision=WritePrecision.MS)
 
 
-        asyncio.run(download_to_csv(ticker=ticker, hour=hour, writer_fn=_writer))
+        asyncio.run(download_to_csv(ticker=ticker, hour=hour))
 
     return
 

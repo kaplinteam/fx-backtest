@@ -9,3 +9,5 @@ dask==2023.4.1
 pandas==2.0.1
 fastparquet==2023.4.0
 tqdm==4.66.1
+
+influxdb-client==1.37.0

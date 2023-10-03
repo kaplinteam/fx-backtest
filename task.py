@@ -67,22 +67,22 @@ def load_last_days_depth(tickers: list[str], days: int):
                     load_hour_data(ticker=ticker, hour=day+timedelta(hours=i))
 
 
-@flow(name="Loading tickers for last N days", log_prints=True)
-def load_days_depth(tickers: list[str], from_days: int, to_days: int):
+@flow(name="Loading tickers for bays between from_days to to_days ago", log_prints=True)
+def load_days_between_depth(tickers: list[str], from_days: int, to_days: int):
     """Load ticker history"""
 
     now = datetime.now()
     now = datetime(now.year, now.month, now.day)
 
     for ticker in tickers:
-        for day in range(days, 0, -1):
+        for day in range(from_days, to_days, -1):
             day = now - timedelta(days=day)
             if day.weekday() < 5:
                 for i in range(0, 24):
                     load_hour_data(ticker=ticker, hour=day+timedelta(hours=i))
 
 
-load_days_depth(from_days=100, to_days=30, tickers=[
+load_days_between_depth(from_days=100, to_days=30, tickers=[
     "USA500IDXUSD",
     "USATECHIDXUSD",
     "LIGHTCMDUSD",

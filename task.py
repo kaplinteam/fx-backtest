@@ -82,7 +82,7 @@ def load_days_between_depth(tickers: list[str], from_days: int, to_days: int):
                     load_hour_data(ticker=ticker, hour=day+timedelta(hours=i))
 
 
-load_days_between_depth(from_days=100, to_days=30, tickers=[
+ALL_TICKERS = [
     "USA500IDXUSD",
     "USATECHIDXUSD",
     "LIGHTCMDUSD",
@@ -91,4 +91,7 @@ load_days_between_depth(from_days=100, to_days=30, tickers=[
     "XPDCMDUSD",
     "XPTCMDUSD",
     "XAUUSD",
-    "XAGUSD"])
+    "XAGUSD"]
+
+load_last_days_depth(days=5, tickers=ALL_TICKERS)
+load_days_between_depth(from_days=100, to_days=30, tickers=ALL_TICKERS)

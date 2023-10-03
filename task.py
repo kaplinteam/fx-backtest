@@ -94,4 +94,4 @@ ALL_TICKERS = [
     "XAGUSD"]
 
 load_last_days_depth(days=5, tickers=ALL_TICKERS)
-load_days_between_depth(from_days=100, to_days=30, tickers=ALL_TICKERS)
+load_days_between_depth(from_days=500, to_days=100, tickers=ALL_TICKERS)

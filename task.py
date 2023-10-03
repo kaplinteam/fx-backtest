@@ -19,7 +19,7 @@ from loader import DataCenter
 
 
 @task(name="dukascopy", 
-    task_run_name="dukascopy-{ticker}-on-{hour:%A}",
+    task_run_name="dukascopy-{ticker}-on-{hour:%c}",
     description="This task loads data from dukascopy & pushes it to the influxdb.")
 def load_hour_data(ticker: str, hour: datetime):
     """Load data for a hour"""

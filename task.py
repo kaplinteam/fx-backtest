@@ -46,7 +46,7 @@ def load_hours_data(ticker: str, hours: list[datetime]):
             """Download data & store it to compressed CSV file"""
             data_center = DataCenter(timeout=30, use_cache=False)
 
-            tuples = await data_center.get_ticks_hours(symbol=pair, hours=hours)
+            tuples = await data_center.get_ticks_hours(symbol=ticker, hours=hours)
             tuples.sort(key=lambda x: x[0])
             for tupl in tuples:
                 hour, stream = tupl

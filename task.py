@@ -67,7 +67,7 @@ def load_last_days_depth(tickers: list[str], days: int):
 
 
 @flow(name="Loading tickers for days between from_days to to_days ago", log_prints=True)
-def load_days_between_depth(tickers: list[str], from_days: int, to_days: int):
+def load_days_between_depth(name: str, tickers: list[str], from_days: int, to_days: int):
     """Load ticker history"""
 
     now = datetime.now()
@@ -79,15 +79,26 @@ def load_days_between_depth(tickers: list[str], from_days: int, to_days: int):
                 load_hours_data(ticker=ticker, hours=[day+timedelta(hours=i) for i in range(0, 24)])
 
 
-ALL_TICKERS = [
-    "USA500IDXUSD",
-    "USATECHIDXUSD",
-    "LIGHTCMDUSD",
-    "BRENTCMDUSD",
-    "COPPERCMDUSD",
-    "XPDCMDUSD",
-    "XPTCMDUSD",
-    "XAUUSD",
-    "XAGUSD"]
+#load_days_between_depth(from_days=330, to_days=100, tickers=ALL_TICKERS)
 
-load_days_between_depth(from_days=330, to_days=100, tickers=ALL_TICKERS)
+if __name__ == "__main__":
+    my_flow.serve("example-deployment", interval=3600)
+
+    load_days_between_depth.serve(
+        name="load_days_between_depth,
+        tags=["dukascopy"],
+        parameters={
+            "tickers": [
+                "USA500IDXUSD",
+                "USATECHIDXUSD",
+                "LIGHTCMDUSD",
+                "BRENTCMDUSD",
+                "COPPERCMDUSD",
+                "XPDCMDUSD",
+                "XPTCMDUSD",
+                "XAUUSD",
+                "XAGUSD"
+            ],
+            "from_days": "3",
+            "to_days": "1"},
+        interval=3600*24) # Daily

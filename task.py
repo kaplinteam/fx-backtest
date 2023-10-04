@@ -44,7 +44,7 @@ def load_hours_data(ticker: str, hours: list[datetime]):
 
         async def download_to_csv(ticker: str, hours: datetime):
             """Download data & store it to compressed CSV file"""
-            ct = DataCenter(timeout=30, use_cache=False)
+            data_center = DataCenter(timeout=30, use_cache=False)
 
             tuples = await data_center.get_ticks_hours(symbol=pair, hours=hours)
             tuples.sort(key=lambda x: x[0])

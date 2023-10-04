@@ -21,6 +21,7 @@ class DataCenter:
         fail_on_count: int = 3,
         use_cache: bool = True,
         threads: int = 3,
+        progress: bool = True,
     ):
         self.path = ".cache"
         self.format = "!3i2f"
@@ -28,6 +29,7 @@ class DataCenter:
         self.threads = threads
         self.timeout = timeout
         self.fail_count = fail_on_count
+        self.progress = progress
         self.initialize()
 
     def initialize(self) -> None:
@@ -141,7 +143,7 @@ class DataCenter:
                 # Not in cache. Download
                 routines.append((h, loader.download(symbol, utc_h)))
             # wait for downloads to complete
-            if len(routines) > 1:
+            if len(routines) > 1 and self.progress:
                 results = await tqdm.gather(
                     *limit_concurrency([i[1] for i in routines], concurrency=self.threads)
                 )

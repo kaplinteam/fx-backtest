@@ -82,10 +82,8 @@ def load_days_between_depth(name: str, tickers: list[str], from_days: int, to_da
 #load_days_between_depth(from_days=330, to_days=100, tickers=ALL_TICKERS)
 
 if __name__ == "__main__":
-    my_flow.serve("example-deployment", interval=3600)
-
     load_days_between_depth.serve(
-        name="load_days_between_depth,
+        "load_days_between_depth,
         tags=["dukascopy"],
         parameters={
             "tickers": [

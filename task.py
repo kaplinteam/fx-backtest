@@ -89,7 +89,7 @@ def load_days_between_depth(tickers: list[str], from_days: int, to_days: int):
 
 
 ALL_TICKERS = [
-    "USA500IDXUSD"
+    "USA500IDXUSD",
     "USATECHIDXUSD",
     "LIGHTCMDUSD",
     "BRENTCMDUSD",

@@ -90,4 +90,4 @@ ALL_TICKERS = [
     "XAUUSD",
     "XAGUSD"]
 
-load_days_between_depth(from_days=350, to_days=100, tickers=ALL_TICKERS)
+load_days_between_depth(from_days=330, to_days=100, tickers=ALL_TICKERS)

@@ -59,11 +59,11 @@ def load_last_days_depth(tickers: list[str], days: int):
     now = datetime.now()
     now = datetime(now.year, now.month, now.day)
 
-    for ticker in tickers:
-        for day in range(days, 0, -1):
-            day = now - timedelta(days=day)
-            if day.weekday() < 5:
-                for i in range(0, 24):
+    for day in range(days, 0, -1):
+        day = now - timedelta(days=day)
+        if day.weekday() < 5:
+            for i in range(0, 24):
+                for ticker in tickers:
                     load_hour_data(ticker=ticker, hour=day+timedelta(hours=i))
 
 
@@ -73,17 +73,15 @@ def load_days_between_depth(tickers: list[str], from_days: int, to_days: int):
 
     now = datetime.now()
     now = datetime(now.year, now.month, now.day)
-
-    for ticker in tickers:
-        for day in range(from_days, to_days, -1):
-            day = now - timedelta(days=day)
-            if day.weekday() < 5:
-                for i in range(0, 24):
+    for day in range(from_days, to_days, -1):
+        day = now - timedelta(days=day)
+        if day.weekday() < 5:
+            for i in range(0, 24):
+                for ticker in tickers:
                     load_hour_data(ticker=ticker, hour=day+timedelta(hours=i))
 
 
 ALL_TICKERS = [
-    "USA500IDXUSD",
     "USATECHIDXUSD",
     "LIGHTCMDUSD",
     "BRENTCMDUSD",
@@ -93,5 +91,4 @@ ALL_TICKERS = [
     "XAUUSD",
     "XAGUSD"]
 
-load_last_days_depth(days=5, tickers=ALL_TICKERS)
 load_days_between_depth(from_days=500, to_days=100, tickers=ALL_TICKERS)

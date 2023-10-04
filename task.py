@@ -18,15 +18,6 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 from loader import DataCenter
 
 
-def batched(iterable, n):
-    "Batch data into tuples of length n. The last batch may be shorter."
-    if n < 1:
-        raise ValueError('n must be at least one')
-    it = iter(iterable)
-    while (batch := tuple(islice(it, n))):
-        yield batch
-
-
 @task(name="dukascopy", 
     task_run_name="dukascopy-{ticker}-on-{hours[0]:%c}",
     description="This task loads data from dukascopy & pushes it to the influxdb.")
@@ -75,7 +66,7 @@ def load_last_days_depth(tickers: list[str], days: int):
                 load_hours_data(ticker=ticker, hours=[day+timedelta(hours=i) for i in range(0, 24)])
 
 
-@flow(name="Loading tickers for bays between from_days to to_days ago", log_prints=True)
+@flow(name="Loading tickers for days between from_days to to_days ago", log_prints=True)
 def load_days_between_depth(tickers: list[str], from_days: int, to_days: int):
     """Load ticker history"""
 
@@ -99,4 +90,4 @@ ALL_TICKERS = [
     "XAUUSD",
     "XAGUSD"]
 
-load_days_between_depth(from_days=500, to_days=100, tickers=ALL_TICKERS)
+load_days_between_depth(from_days=400, to_days=100, tickers=ALL_TICKERS)
